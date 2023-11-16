@@ -1,0 +1,401 @@
+syntax = "proto3";
+
+package SRW;
+
+message MoveEventPayload {
+  float position = 1;
+  float speed = 2;
+  float acc = 3;
+  float event_time = 4;
+}
+
+message AckEventPayload { uint32 reply_seq = 1; }
+
+message EndCommandEventPayload {
+  uint32 reply_seq = 1;
+  bool result = 2;
+  string status = 3;
+}
+
+enum ErrorCode {
+  Dummy = 0x0000;
+  NODE402_ERROR = 0x0001;
+
+  ALLCAN_NODE_ERROR = 0x0002;
+
+  MOVE_OK = 0x0100;
+  MOVE_MOTOR_ERROR = 0x0101;
+  MOVE_SAFETY_SENSOR = 0x0102;
+  MOVE_CANBUS_FAULT = 0x0103;
+  MOVE_TIMEOUT = 0x0104;
+  MOVE_MARKER_ERROR = 0x0105;
+
+  LOAD_OK = 0x0200;
+  LOAD_MOTOR_ERROR = 0x0201;
+  LOAD_NO_ITEM_DETECTED = 0x0202;
+  LOAD_CANBUS_FAULT = 0x0203;
+  LOAD_TIMEOUT = 0x0204;
+  LOAD_ITEM_STUCKED = 0x0205;
+  LOAD_SENSOR_ERROR = 0x0206;
+  LOAD_OVERLENGTH = 0x0207;
+
+  UNLOAD_OK = 0x0300;
+  UNLOAD_MOTOR_ERROR = 0x0301;
+  UNLOAD_NO_ITEM_DETECTED = 0x0302;
+  UNLOAD_CANBUS_FAULT = 0x0303;
+  UNLOAD_TIMEOUT = 0x0304;
+  UNLOAD_ITEM_STUCKED = 0x0305;
+  UNLOAD_SENSOR_ERROR = 0x0306;
+
+  GOLIFT_OK = 0x0400;
+  GOLIFT_MOTOR_ERROR = 0x0401;
+  GOLIFT_NO_MARKER_DETECTED = 0x0402;
+  GOLIFT_CANBUS_FAULT = 0x0403;
+  GOLIFT_LIFT_POS_ERROR = 0x0404;
+
+  HOME_OK = 0x0500;
+  HOME_MOTOR_ERROR = 0x0501;
+  HOME_NO_MARKER_DETECTED = 0x0502;
+  HOME_CANBUS_FAULT = 0x0503;
+
+  RECOVER_OK = 0x0600;
+  RECOVER_SENSOR_TRIGGER = 0x0601;
+  RECOVER_MOTOR_INIT_FAULT = 0x0602;
+
+  ACK_OK = 0x0700;
+  ACK_TIMEOUT = 0x0701;
+
+  FORCE_UNLOAD_OK = 0x0800;
+  FORCE_UNLOAD_MOTOR_ERROR = 0x0801;
+  FORCE_UNLOAD_CANBUS_FAULT = 0x0802;
+  FORCE_UNLOAD_SENSOR_ERROR = 0x0803;
+
+  EXIT_EMERGENCY_OK = 0x0900;
+  EXIT_EMERGENCY_EMCY_BUTTON_PRESS = 0x0901;
+}
+
+enum ErrorType {
+  // general motor error, not task related
+  MOVEMENT_MOTOR = 0;
+  HANDLE_MOTOR = 1;
+  // task related error types
+  ACK = 2;
+  MOVE = 3;
+  LOAD = 4;
+  UNLOAD = 5;
+  HOME = 6;
+  GO_LIFT = 7;
+  HEALTH = 8;
+  INFO = 9;
+  STATUS = 10;
+  CONFIG = 11;
+  RESET = 12;
+  EMERGENCY = 13;
+  RECOVER = 14;
+  SLEEP = 15;
+  UPGRADE = 16;
+  FORCE_UNLOAD = 17;
+  EXIT_EMCY = 18;
+  ALLCAN = 19;
+}
+
+message Error {
+  ErrorCode error_code = 1;
+  ErrorType error_type = 2;
+  uint32 task_id = 3;
+  bytes payload = 4;
+}
+
+message ErrorEventPayload {
+  uint32 reply_seq = 1;
+  uint32 size = 2;
+  Error error_1 = 3;
+  Error error_2 = 4;
+  Error error_3 = 5;
+  Error error_4 = 6;
+  Error error_5 = 7;
+  uint32 true_size = 8;
+}
+
+message HealthEventPayload {
+  uint32 reply_seq = 1;
+  float voltage = 2;
+  float current = 3;
+}
+
+message InfoEventPayload {
+  uint32 reply_seq = 1;
+  string hardware_version = 2;
+  string software_version = 3;
+  string serial_number = 4;
+  string protocol_version = 5;
+  string commit_version = 6;
+  bytes addr64 = 7;
+  bytes addr16 = 8;
+}
+
+enum MainStateEnum {
+  STATE_INIT = 0;
+  STATE_HANDLE_ENABLE = 1; // 作废
+  STATE_IDLE = 2;
+  STATE_MOVE = 3;
+  STATE_HOME = 4;
+  STATE_LIFT = 5;
+  STATE_LOAD = 6;
+  STATE_UNLOAD = 7;
+  STATE_INTO_EMERGENCY = 8;
+  STATE_EMERGENCY = 9;
+  STATE_EXIT_EMERGENCY = 10;
+  STATE_ACK = 11;
+  STATE_UPGRADE = 12;
+  STATE_FAULT = 13;
+  STATE_SLEEP = 14;
+  STATE_EXIT_SLEEP = 15;
+  STATE_RESET_PUB = 16;
+  STATE_FORCE_UNLOAD = 17;
+  STATE_INITPROGRESS = 18;
+  STATE_RECOVER = 19;
+  STATE_TEST = 20;
+};
+
+message StatusEventPayload {
+  uint32 reply_seq = 1;
+  MainStateEnum sml_state = 2;
+  uint32 main_motor_state = 3;
+  uint32 belt_motor_state = 4;
+  bool avoidance_front_sensor_state = 5;
+  bool avoidance_rear_sensor_state = 6;
+  bool side_A_sensor_state = 7;
+  bool side_B_sensor_state = 8;
+  bool marker_sensor_state = 9;
+  bool home_sensor_state = 10;
+  float robot_position_in_m = 11;
+}
+
+message ConfigEventPayload {
+  uint32 reply_seq = 1;
+  ConfigAction action = 2;
+  ConfigEntry entry = 3;
+  oneof config_val {
+    uint32 uint_value = 4;
+    string str_value = 5;
+  }
+}
+
+message ResetEventPayload {
+  uint32 reply_seq = 1;
+  uint32 hardware_startup_count = 2;
+  uint32 software_startup_count = 3;
+}
+
+enum EventType {
+  ACK_EVENT = 0;
+  MOVE_EVENT = 1;
+  END_COMMAND_EVENT = 2;
+  ERROR_EVENT = 3;
+  HEALTH_EVENT = 4;
+  INFO_EVENT = 5;
+  STATUS_EVENT = 6;
+  CONFIG_EVENT = 7;
+  RESET_EVENT = 8;
+  HEART_BEAT_EVENT = 9;
+  EVENT_NUM = 10;
+}
+
+message Event {
+  EventType type = 1;
+  uint32 seq = 2;
+  uint64 time = 3;
+
+  oneof payload {
+    AckEventPayload ack = 4;
+    MoveEventPayload move = 5;
+    EndCommandEventPayload end = 6;
+    ErrorEventPayload error = 7;
+    HealthEventPayload health = 8;
+    InfoEventPayload info = 9;
+    StatusEventPayload status = 10;
+    ConfigEventPayload config = 11;
+    ResetEventPayload reset = 12;
+  }
+}
+
+message AckCommandPayload { uint32 reply_seq = 1; }
+
+message MoveCommandPayload {
+  float position = 1;
+  float speed = 2;
+  float acc = 3;
+  float dec = 4;
+  bool report_frequency_boost = 5;
+}
+
+message LoadCommandPayload { bool direction = 1; }
+
+message UnloadCommandPayload { bool direction = 1; }
+
+message ForceUnloadCommandPayload {
+  bool direction = 1;
+  uint32 force_unload_duration = 2;
+}
+
+message HomeCommandPayload {
+  bool direction = 1;
+  float position = 2;
+}
+
+message GoLiftCommandPayload {
+  float position = 1;
+  float speed = 2;
+  float acc = 3;
+  float dec = 4;
+  bool report_frequency_boost = 5;
+}
+
+message HealthCommandPayload {}
+
+message InfoCommandPayload {}
+
+message StatusCommandPayload {}
+
+enum ConfigAction {
+  READ_ACTION = 0;
+  WIRTE_ACTION = 1;
+}
+
+enum ConfigEntry {
+  DUMMY = 0x0000;
+  MAIN_MOTOR_RESOLUTION = 0x2000;
+  MAIN_MOTOR_REDUCTION_RATIO = 0x2001;
+  MAIN_MOTOR_WHEEL_DISTANCE = 0x2002;
+  MAIN_MOTOR_GO_LIFT_DISTANCE = 0x2003;
+  MAIN_MOTOR_HOME_VEL = 0x2004;
+  BELT_LOAD_SPEED = 0x2005;
+  BELT_UNLOAD_SPEED = 0x2006;
+  BELT_UNLOAD_TIMEOUT = 0x2007;
+  BELT_MOTOR_RESOLUTION = 0x2008;
+  BELT_MOTOR_REDUCTION_RATIO = 0x2009;
+  BELT_MOTOR_WHEEL_DIA = 0x200a;
+  BELT_LEN = 0x200b;
+  BELT_MOTOR_ACC = 0x200c;
+  MOTOR_ERR_RECOVER_CONT = 0x200d;
+  MOTOR_REACHED_THRESHOLD = 0x200e;
+  MOTOR_VELOCITY_THRESHOLD = 0x200f;
+  ENCODER_FACTORS = 0x2010;
+  VERSION_HW = 0x2011;
+  VERSION_PROTO = 0x2012;
+  SERIAL_NUM = 0x2013;
+  MARKER_MARKER_1 = 0x2014;
+  MARKER_MARKER_2 = 0x2015;
+  MARKER_MARKER_3 = 0x2016;
+  MARKER_MARKER_4 = 0x2017;
+  MARKER_MARKER_5 = 0x2018;
+  MARKER_MARKER_6 = 0x2019;
+  MARKER_MARKER_7 = 0x201a;
+  MARKER_MARKER_8 = 0x201b;
+  MARKER_MARKER_9 = 0x201c;
+  MARKER_MARKER_10 = 0x201d;
+  MARKER_MARKER_11 = 0x201e;
+  MARKER_MARKER_12 = 0x201f;
+  MARKER_MARKER_13 = 0x2020;
+  MARKER_MARKER_14 = 0x2021;
+  MARKER_MARKER_15 = 0x2022;
+  MARKER_MARKER_16 = 0x2023;
+  MARKER_MARKER_17 = 0x2024;
+  MARKER_MARKER_18 = 0x2025;
+  MARKER_MARKER_19 = 0x2026;
+  MARKER_MARKER_20 = 0x2027;
+  MARKER_MARKER_21 = 0x2028;
+  MARKER_MARKER_22 = 0x2029;
+  MARKER_MARKER_23 = 0x202a;
+  MARKER_MARKER_24 = 0x202b;
+  MARKER_MARKER_25 = 0x202c;
+  MARKER_MARKER_26 = 0x202d;
+  MARKER_MARKER_27 = 0x202e;
+  MARKER_MARKER_28 = 0x202f;
+  MARKER_MARKER_29 = 0x2030;
+  MARKER_MARKER_30 = 0x2031;
+}
+
+message ConfigCommandPayload {
+  ConfigAction action = 1;
+  ConfigEntry entry = 2;
+  oneof config_val {
+    uint32 uint_value = 3;
+    string str_value = 4;
+  }
+}
+
+message ResetCommandPayload {}
+
+message EmergencyCommandPayload {
+  float dec = 1;
+  bool into_emergency = 2;
+}
+
+message RecoverCommandPayload {
+  uint32 size = 1;
+  ErrorCode error_code_1 = 2;
+  ErrorCode error_code_2 = 3;
+  ErrorCode error_code_3 = 4;
+  ErrorCode error_code_4 = 5;
+  ErrorCode error_code_5 = 6;
+}
+
+enum SleepType {
+  ENTER_SLEEP = 0;
+  EXIT_SLEEP = 1;
+}
+
+message SleepCommandPayload { SleepType type = 1; }
+
+message UpgradeCommandPayload {}
+
+message ErrorCommandPayload {}
+
+enum CommandType {
+  ACK_COMMAND = 0;
+  MOVE_COMMAND = 1;
+  LOAD_COMMAND = 2;
+  UNLOAD_COMMAND = 3;
+  HOME_COMMAND = 4;
+  GO_LIFT_COMMAND = 5;
+  HEALTH_COMMAND = 6;
+  INFO_COMMAND = 7;
+  STATUS_COMMAND = 8;
+  CONFIG_COMMAND = 9;
+  RESET_COMMAND = 10;
+  EMERGENCY_COMMAND = 11;
+  RECOVER_COMMAND = 12;
+  SLEEP_COMMAND = 13;
+  UPGRADE_COMMAND = 14;
+  ERROR_COMMAND = 15;
+  FORCE_UNLOAD_COMMAND = 16;
+  COMMAND_NUM = 17;
+}
+
+message Command {
+  CommandType type = 1;
+  uint32 seq = 2;
+  uint64 time = 3;
+
+  oneof payload {
+    AckCommandPayload ack = 4;
+    MoveCommandPayload move = 5;
+    LoadCommandPayload load = 6;
+    UnloadCommandPayload unload = 7;
+    HomeCommandPayload home = 8;
+    GoLiftCommandPayload lift = 9;
+    HealthCommandPayload health = 10;
+    InfoCommandPayload info = 11;
+    StatusCommandPayload status = 12;
+    ConfigCommandPayload config = 13;
+    ResetCommandPayload reset = 14;
+    EmergencyCommandPayload emergency = 15;
+    RecoverCommandPayload recover = 16;
+    SleepCommandPayload sleep = 17;
+    UpgradeCommandPayload upgrade = 18;
+    ErrorCommandPayload error = 19;
+    ForceUnloadCommandPayload forceunload = 20;
+  }
+}

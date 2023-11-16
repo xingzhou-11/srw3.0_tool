@@ -1,0 +1,1 @@
+protoc ./srw.proto --python_out=./ && cd ..
